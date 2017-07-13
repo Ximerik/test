@@ -58,8 +58,8 @@ void TC1_init(void){
 	OCR1AH = 0x38;
 	OCR1AL = 0x53;
 	
-	TIMSK1 |= (1<<ICIE1)|
-			  (1<<OCIE0A);	
+	TIMSK1 |= 	(1<<ICIE1)|
+			(1<<OCIE0A);	
 			  
 }
 
@@ -74,6 +74,8 @@ void USART_Init( unsigned int baud ){ // äîðàáîòàòü
 	UCSR0B = (1<<RXEN0)|(1<<TXEN0);
 	/* Set frame format: 8data, 2stop bit */
 	UCSR0C = (1<<USBS0)|(3<<UCSZ00);
+	PORTC |= (1<<PC2);
+	PINC |= (1<<PC2);
 }
 /************************************************************************/
 /*INT1 and ADC                                                          */
@@ -113,6 +115,10 @@ int main(void)
     /* Replace with your application code */
     while (1) 
     {
+	if (PC2==0)
+		UCSR0C |=(1<<U2X0);
+	else
+		UCSR0C &=~(1<<U2X0);
     }
 }
 ISR(TIMER0_COMPA_vect){
