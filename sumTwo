@@ -1,0 +1,14 @@
+int* twoSum(int* nums, int numsSize, int target) {
+    int sum, i, j;
+    while (sum!=target){
+        while(i++!=numsSize)
+            while(j++!=numsSize){
+                if(i!=j)
+                    sum=nums[i]+nums[j];
+                else 
+                    continue;
+        }
+    }
+    int res[2]={i,j};
+    return res;
+}
