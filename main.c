@@ -38,12 +38,12 @@ void TC0_init(void){
 	PORTD |= (1<<PD6);
 	DDRD  |= (1<<PD6);
 	TCCR0A |=	(1<<COM0A0)|
-				(1<<WGM00)|
-				(1<<WGM01);
+			(1<<WGM00)|
+			(1<<WGM01);
 
 	TCCR0B |=	(1<<WGM02)|
-				(1<<CS00)|
-				(1<<CS01);
+			(1<<CS00)|
+			(1<<CS01);
 	OCR0A = 0x2E;
 }
 
@@ -51,9 +51,9 @@ void TC0_init(void){
 /* TIMER 1 USART                                                        */
 /************************************************************************/
 void TC1_init(void){
-	TCCR1B |= (1<<WGM12)|
-			  (1<<CS12)|
-			  (1<<CS10);
+	TCCR1B |= 	(1<<WGM12)|
+			(1<<CS12)|
+			(1<<CS10);
 			  
 	OCR1AH = 0x38;
 	OCR1AL = 0x53;
@@ -66,7 +66,7 @@ void TC1_init(void){
 /************************************************************************/
 /*USART                                                                 */
 /************************************************************************/
-void USART_Init( unsigned int baud ){ // доработать
+void USART_Init( unsigned int baud ){ // Г¤Г®Г°Г ГЎГ®ГІГ ГІГј
 	/* Set baud rate */
 	UBRR0H = (unsigned char)(baud>>8);
 	UBRR0H = (unsigned char)baud;
@@ -75,13 +75,27 @@ void USART_Init( unsigned int baud ){ // доработать
 	/* Set frame format: 8data, 2stop bit */
 	UCSR0C = (1<<USBS0)|(3<<UCSZ00);
 }
-
+/************************************************************************/
+/*INT1 and ADC                                                          */
+/************************************************************************/
+void inter_n_adc_init(void){
+	PORTD |= (1<<PD3);
+	EIMSK |=(1<<INT1);
+	EICRA |= (1<<ISC10);
+	ADMUX |=(1<<REFS0)|
+		(1<<ADLAR)|
+		(1<<MUX0);
+	ADCSRA |=(1<<ADIE)|
+		(1<<ADPS1)|
+		 (1<<ADPS0);
+}
 
 /************************************************************************/
 /* GLOBAL VARIABLE                                                      */
 /************************************************************************/
 uint8_t global1, 
-		global2;
+	global2,
+	adc_var;
 
 
 int main(void)
@@ -91,6 +105,7 @@ int main(void)
 	eeprom_write_byte(4,0xAA);
 	eeprom_write_byte(5,0xEE);
 	
+	int1_init();
 	TC0_init();
 	TC1_init();
 	USART_Init(MYUBRR);
@@ -110,4 +125,13 @@ ISR(USART_RX_vect){
 	while (!(UCSR0A & (1<<RXC0)))
 		OCR0A = UDR0;
 		rWrite(OCR0A);
+}
+ISR(INt1_vect){
+	ADCSRA|=(1<<ADEN)|
+		(1<<ADSC);
+}
+ISR(ADC_vect){
+	adc_var = ADCH;
+	ADCSRA&=~(1<<ADEN)&
+		~(1<<ADSC);
 }
