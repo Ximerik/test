@@ -12,8 +12,8 @@
 #include <avr/interrupt.h>
 
 #define BUFER_SIZE 20
-#define fCK 147456
-#define BAUD 9600
+#define fCK 14745600UL
+#define BAUD 9600UL
 #define MYUBRR (fCK/( BAUD * 16 ))-1
 
 /************************************************************************/
@@ -24,10 +24,10 @@ struct ring_bufer{
 	uint8_t write;
 }bufer;
 
-void rWrite(uint8_t* byte){
-	uint8_t* pWrite = bufer.write; 
-	bufer.mem[(*pWrite)++]=*byte;
-	if (pWrite>19)
+void rWrite(uint8_t byte){
+	uint8_t* pWrite = &bufer.write; 
+	bufer.mem[(*pWrite)++]=byte;
+	if (*pWrite>BUFER_SIZE-1)
 		*pWrite=0;
 }
 
@@ -66,7 +66,7 @@ void TC1_init(void){
 /************************************************************************/
 /*USART                                                                 */
 /************************************************************************/
-void USART_Init( unsigned int baud ){ // äîðàáîòàòü
+void USART_Init( unsigned int baud ){ // ??????????
 	/* Set baud rate */
 	UBRR0H = (unsigned char)(baud>>8);
 	UBRR0H = (unsigned char)baud;
@@ -80,7 +80,9 @@ void USART_Init( unsigned int baud ){ // äîðàáîòàòü
 /************************************************************************/
 /*INT1 and ADC                                                          */
 /************************************************************************/
-void inter_n_adc_init(void){
+void interupt_n_adc_init(void){
+	
+	PIND |= (1<<PD3);
 	PORTD |= (1<<PD3);
 	EIMSK |=(1<<INT1);
 	EICRA |= (1<<ISC10);
@@ -96,18 +98,23 @@ void inter_n_adc_init(void){
 /* GLOBAL VARIABLE                                                      */
 /************************************************************************/
 uint8_t global1, 
-	global2,
-	adc_var;
+		global2,
+		adc_var,
+		ee_adress1 = 4,
+		ee_adress2 = 5,
+		ee_data1 = 0xAA,
+		ee_data2 = 0xEE;
 
 
 int main(void)
 {	
+	sei();
 	global1 = eeprom_read_byte(0x01);
 	global2 = eeprom_read_byte(0x02);
-	eeprom_write_byte(4,0xAA);
-	eeprom_write_byte(5,0xEE);
+	eeprom_write_byte(&ee_adress1,ee_data1);
+	eeprom_write_byte(&ee_adress2,ee_data2);
 	
-	int1_init();
+	interupt_n_adc_init();
 	TC0_init();
 	TC1_init();
 	USART_Init(MYUBRR);
@@ -115,24 +122,22 @@ int main(void)
     /* Replace with your application code */
     while (1) 
     {
-	if (PC2==0)
-		UCSR0C |=(1<<U2X0);
-	else
-		UCSR0C &=~(1<<U2X0);
+		while((PORTC&~(1<<PC2)))
+			UCSR0A |= (1<<U2X0);
     }
 }
 ISR(TIMER0_COMPA_vect){
-	while(!UCSR0A&(1<<UDRE0))
+	while (!( UCSR0A & (1<<UDRE0)));
 		UDR0 = global1;
-	while(!UCSR0A&(1<<UDRE0))
+	while (!( UCSR0A & (1<<UDRE0)));
 		UDR0 = global2;
 }
 ISR(USART_RX_vect){
-	while (!(UCSR0A & (1<<RXC0)))
+	while(!(UCSR0A) & (1<<RXC0)); 
 		OCR0A = UDR0;
 		rWrite(OCR0A);
 }
-ISR(INt1_vect){
+ISR(INT1_vect){
 	ADCSRA|=(1<<ADEN)|
 		(1<<ADSC);
 }
