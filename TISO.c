@@ -20,7 +20,7 @@
 /* FIFO bufer                                                           */
 /************************************************************************/
 struct ring_bufer{
-    char angle[SIZE];
+    char memory[SIZE];
     int write_count,
         read_count;
 }bufer;
@@ -38,14 +38,14 @@ int is_empty(struct ring_bufer *this_bufer){
 }
 void write(char data, struct ring_bufer *this_bufer){
     while(isfull(this_bufer) != 1){
-        this_bufer -> angle[(*this_bufer -> write_count)++] = data;
+        this_bufer -> memory[(*this_bufer -> write_count)++] = data;
         if (*this_bufer -> write_count > SIZE-1)
             *this_bufer -> write_count = 0;
     }
 }
 void* read(char* data, struct ring_bufer *this_bufer){
     while(isempty(this_bufer) != 1){
-        *data++ = this_bufer -> angle[(*this_bufer -> read_count)++];
+        *data++ = this_bufer -> memory[(*this_bufer -> read_count)++];
         if (*this_bufer -> read_count > SIZE-1)
             *this_bufer -> read_count = 0;
     }
