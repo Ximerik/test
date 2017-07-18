@@ -14,14 +14,16 @@
 #define BUFER_SIZE 20
 #define fCK 14745600UL
 #define BAUD 9600UL
-#define MYUBRR (fCK/( BAUD * 16 ))-1
+#define MYUBRR 95
 
 /************************************************************************/
 /* FIFO bufer                                                           */
 /************************************************************************/
 struct ring_bufer{
 	uint8_t mem[BUFER_SIZE];
-	uint8_t write;
+	uint8_t write,
+		read;
+	
 }bufer;
 
 void rWrite(uint8_t* byte){
@@ -29,6 +31,12 @@ void rWrite(uint8_t* byte){
 	bufer.mem[(*pWrite)++]=*byte;
 	if (*pWrite>19)
 		*pWrite=0;
+}
+void rRead(uint8_t* data){
+	uint8_t* pRead = bufer.read; 
+	*data++ = bufer.mem[(*pRead)++];
+	if (*pRead>19)
+		*pRead=0;
 }
 
 /************************************************************************/
@@ -51,31 +59,23 @@ void TC0_init(void){
 /* TIMER 1 USART                                                        */
 /************************************************************************/
 void TC1_init(void){
-	TCCR1B |= 	(1<<WGM12)|
-			(1<<CS12)|
-			(1<<CS10);
-			  
+	TCCR1B |= (1<<WGM12)|
+		  (1<<CS12)|
+		  (1<<CS10);  
 	OCR1AH = 0x38;
 	OCR1AL = 0x53;
-	
-	TIMSK1 |= 	(1<<ICIE1)|
-			(1<<OCIE0A);	
+	TIMSK1 |= (1<<OCIE1A);	
 			  
 }
 
 /************************************************************************/
 /*USART                                                                 */
 /************************************************************************/
-void USART_Init( unsigned int baud ){ // ??????????
-	/* Set baud rate */
-	UBRR0H = (unsigned char)(baud>>8);
-	UBRR0H = (unsigned char)baud;
-	/* Enable receiver and transmitter */
-	UCSR0B = (1<<RXEN0)|(1<<TXEN0);
-	/* Set frame format: 8data, 2stop bit */
-	UCSR0C = (1<<USBS0)|(3<<UCSZ00);
+void USART_Init(void){
+	UBRR0L = MYUBRR;
+	UCSR0B = (1<<RXEN0)|(1<<TXEN0)|(1<<RXCIE0);
+	UCSR0C |= (1<<UCSZ00)|()1<<UCSZ01);
 	PORTC |= (1<<PC2);
-	PINC |= (1<<PC2);
 }
 /************************************************************************/
 /*INT1 and ADC                                                          */
@@ -110,7 +110,7 @@ int main(void)
 	interupt_n_adc_init();
 	TC0_init();
 	TC1_init();
-	USART_Init(MYUBRR);
+	USART_Init();
 	
     /* Replace with your application code */
     while (1) 
