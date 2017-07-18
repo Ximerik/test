@@ -24,10 +24,10 @@ struct ring_bufer{
 	uint8_t write;
 }bufer;
 
-void rWrite(uint8_t byte){
-	uint8_t* pWrite = &bufer.write; 
-	bufer.mem[(*pWrite)++]=byte;
-	if (*pWrite>BUFER_SIZE-1)
+void rWrite(uint8_t* byte){
+	uint8_t* pWrite = bufer.write; 
+	bufer.mem[(*pWrite)++]=*byte;
+	if (*pWrite>19)
 		*pWrite=0;
 }
 
@@ -81,8 +81,6 @@ void USART_Init( unsigned int baud ){ // ??????????
 /*INT1 and ADC                                                          */
 /************************************************************************/
 void interupt_n_adc_init(void){
-	
-	PIND |= (1<<PD3);
 	PORTD |= (1<<PD3);
 	EIMSK |=(1<<INT1);
 	EICRA |= (1<<ISC10);
@@ -98,21 +96,16 @@ void interupt_n_adc_init(void){
 /* GLOBAL VARIABLE                                                      */
 /************************************************************************/
 uint8_t global1, 
-		global2,
-		adc_var,
-		ee_adress1 = 4,
-		ee_adress2 = 5,
-		ee_data1 = 0xAA,
-		ee_data2 = 0xEE;
+	global2,
+	adc_var;
 
 
 int main(void)
 {	
-	sei();
 	global1 = eeprom_read_byte(0x01);
 	global2 = eeprom_read_byte(0x02);
-	eeprom_write_byte(&ee_adress1,ee_data1);
-	eeprom_write_byte(&ee_adress2,ee_data2);
+	eeprom_write_byte(4,0xAA);
+	eeprom_write_byte(5,0xEE);
 	
 	interupt_n_adc_init();
 	TC0_init();
@@ -122,18 +115,20 @@ int main(void)
     /* Replace with your application code */
     while (1) 
     {
-		while((PORTC&~(1<<PC2)))
-			UCSR0A |= (1<<U2X0);
+	if (PC2==0)
+		UCSR0C |=(1<<U2X0);
+	else
+		UCSR0C &=~(1<<U2X0);
     }
 }
 ISR(TIMER0_COMPA_vect){
-	while (!( UCSR0A & (1<<UDRE0)));
+	while(!(UCSR0A)&(1<<UDRE0))
 		UDR0 = global1;
-	while (!( UCSR0A & (1<<UDRE0)));
+	while(!(UCSR0A)&(1<<UDRE0))
 		UDR0 = global2;
 }
 ISR(USART_RX_vect){
-	while(!(UCSR0A) & (1<<RXC0)); 
+	while (!(UCSR0A) & (1<<RXC0))
 		OCR0A = UDR0;
 		rWrite(OCR0A);
 }
