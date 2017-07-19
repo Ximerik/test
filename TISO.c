@@ -20,17 +20,40 @@
 /* FIFO bufer                                                           */
 /************************************************************************/
 struct ring_bufer{
-	uint8_t mem[BUFER_SIZE];
-	uint8_t write,
-		read;
-	
+    char memory[SIZE];
+    int write_count,
+        read_count;
 }bufer;
 
-void rWrite(uint8_t* byte){
-	uint8_t* pWrite = bufer.write; 
-	bufer.mem[(*pWrite)++]=*byte;
-	if (*pWrite>19)
-		*pWrite=0;
+int is_full(struct ring_bufer *this_bufer){
+    if (((this_bufer->write_count) - (this_bufer->read_count)) != 0)
+        return 0;
+    else
+        return 1;
+}
+int is_empty(struct ring_bufer *this_bufer){
+    if ((((*this_bufer->write_count) - (*this_bufer->read_count)) == 0)
+        return 1;
+    else
+        return 0;
+}
+void write(char data, struct ring_bufer *this_bufer){
+    while(isfull(this_bufer) != 1){
+        this_bufer -> memory[(*this_bufer -> write_count)++] = data;
+        if (*this_bufer -> write_count > SIZE-1)
+            *this_bufer -> write_count = 0;
+    }
+}
+void* read(char* data, struct ring_bufer *this_bufer){
+    while(isempty(this_bufer) != 1){
+        *data++ = this_bufer -> memory[(*this_bufer -> read_count)++];
+        if (*this_bufer -> read_count > SIZE-1)
+            *this_bufer -> read_count = 0;
+    }
+}
+void clear_bufer(struct ring_bufer *this_bufer){
+    *this_bufer -> write_count = 0;
+    *this_bufer -> read_count = 0;
 }
 void rRead(uint8_t* data){
 	uint8_t* pRead = bufer.read; 
@@ -130,7 +153,7 @@ ISR(TIMER0_COMPA_vect){
 ISR(USART_RX_vect){
 	while (!(UCSR0A) & (1<<RXC0))
 		OCR0A = UDR0;
-		rWrite(OCR0A);
+		rWrite(OCR0A, &bufer);
 }
 ISR(INT1_vect){
 	ADCSRA|=(1<<ADEN)|
